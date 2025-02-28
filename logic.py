@@ -48,4 +48,3 @@ def fix_hanging_prepositions(input_path, output_path):
 
     # Сохраняем файл
     doc.save(output_path)
-    print(f"✅ Обработка завершена! Файл сохранен в {output_path}")
