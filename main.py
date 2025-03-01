@@ -1,17 +1,18 @@
+from ui import run_ui
+from logger import setup_logging, log_separator  # Импортируем функции логирования
 import logging
-from ui import run_ui, log_separator
-
-# Настройка логирования
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler("app.log"),
-        logging.StreamHandler()
-    ]
-)
 
 if __name__ == "__main__":
+    # Настраиваем систему логирования
+    setup_logging()
+
     logging.info("Запуск приложения")
-    log_separator()
-    run_ui()
+    log_separator("Начало работы")
+
+    try:
+        run_ui()
+    except Exception as e:
+        logging.critical(f"Критическая ошибка: {e}", exc_info=True)
+        log_separator("Завершение работы с ошибкой")
+    else:
+        log_separator("Завершение работы")
