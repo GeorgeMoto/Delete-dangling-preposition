@@ -3,7 +3,7 @@ from logger import setup_logging, log_separator  # Импортируем фун
 import logging
 
 if __name__ == "__main__":
-    # Настраиваем систему логирования
+
     setup_logging()
 
     logging.info("Запуск приложения")

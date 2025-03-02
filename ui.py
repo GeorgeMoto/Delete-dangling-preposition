@@ -1,4 +1,3 @@
-# ui.py
 import os
 import threading
 import ttkbootstrap as ttk
@@ -6,7 +5,6 @@ from tkinter import filedialog, messagebox, StringVar
 from ttkbootstrap.constants import *
 from config import SHORT_WORDS, save_short_words
 from logic import fix_hanging_prepositions
-from logger import log_separator  # Импортируем функцию разделителя
 import logging
 
 

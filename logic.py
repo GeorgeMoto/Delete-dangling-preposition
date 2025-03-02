@@ -29,22 +29,74 @@ def safe_document_handling(input_path, output_path):
         raise e
 
 
-def replace_spaces_with_nbsp(text):
-    """Заменяет пробел после коротких предлогов и союзов на неразрывный пробел (\u00A0)."""
-    words = re.split(r'(\s+)', text)  # Разбиваем по пробелам, но сохраняем их
-    for i in range(len(words) - 2):
-        word = words[i].strip(".,!?;:")
-        if word.lower() in SHORT_WORDS and words[i + 1] == " ":
-            words[i + 1] = "\u00A0"
-    return "".join(words)
+def find_hanging_prepositions(paragraph):
+    """
+    Улучшенная функция для нахождения висячих предлогов, с особым вниманием к коротким предлогам
+    """
+    replacements = []
+
+    # Сначала анализируем каждый run отдельно
+    for i, run in enumerate(paragraph.runs):
+        text = run.text
+
+        # Используем более строгий паттерн для предлогов
+        # Добавляем проверку границ слов \b с обеих сторон для коротких предлогов
+        pattern = r'(?<!\w)(' + '|'.join(re.escape(word) for word in SHORT_WORDS) + r')(?=\s)'
+
+        for match in re.finditer(pattern, text, re.IGNORECASE):
+            start, end = match.span()
+            # Проверяем, что после предлога идет пробел
+            if end < len(text) and text[end].isspace():
+                replacements.append((i, start, end + 1))  # +1 чтобы захватить пробел
+
+    # Ищем предлоги на границах runs с улучшенной логикой
+    for i in range(len(paragraph.runs) - 1):
+        run_text = paragraph.runs[i].text
+        next_run_text = paragraph.runs[i + 1].text
+
+        if not run_text or not next_run_text:
+            continue
+
+        # Проверяем, заканчивается ли run на предлог
+        last_word_match = re.search(r'(?<!\w)(' + '|'.join(re.escape(word) for word in SHORT_WORDS) + r')$', run_text,
+                                    re.IGNORECASE)
+
+        if last_word_match:
+            # Если следующий run начинается с пробела или невидимого символа форматирования
+            if next_run_text and (next_run_text[0].isspace() or ord(next_run_text[0]) < 32):
+                replacements.append((i + 1, 0, 1, 'boundary'))
+
+    return replacements
 
 
 def process_paragraph(paragraph):
-    """Обрабатывает текст в параграфе, заменяя пробелы после предлогов на неразрывные."""
+    """
+    Обрабатывает параграф, сохраняя форматирование
+    """
     if not paragraph.runs:
         return
-    for run in paragraph.runs:
-        run.text = replace_spaces_with_nbsp(run.text)
+
+    replacements = find_hanging_prepositions(paragraph)
+
+    # Применяем замены с конца, чтобы не сбивать индексы
+    replacements.sort(reverse=True, key=lambda x: (x[0], x[1]))
+
+    for rep in replacements:
+        if len(rep) == 4 and rep[3] == 'boundary':  # Замена на границе runs
+            i, start, end = rep[0], rep[1], rep[2]
+            if i < len(paragraph.runs) and paragraph.runs[i].text:
+                # Заменяем пробел на неразрывный в начале следующего run
+                run_text = paragraph.runs[i].text
+                if run_text[0].isspace():
+                    paragraph.runs[i].text = "\u00A0" + run_text[1:]
+                else:  # Обработка невидимых символов
+                    paragraph.runs[i].text = "\u00A0" + run_text
+        else:
+            i, start, end = rep[0], rep[1], rep[2]
+            if i < len(paragraph.runs):
+                run_text = paragraph.runs[i].text
+                # Заменяем пробел на неразрывный внутри run
+                paragraph.runs[i].text = run_text[:start] + run_text[start:end - 1] + "\u00A0" + run_text[end:]
 
 
 def fix_hanging_prepositions(input_path, output_path, progress_callback=None):
