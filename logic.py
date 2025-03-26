@@ -198,3 +198,60 @@ def fix_hanging_prepositions(input_path, output_path, progress_callback=None):
                 processed += 1
                 if progress_callback:
                     progress_callback(processed / total_elements)
+
+def fix_hanging_prepositions_with_spellcheck(input_path, output_path, progress_callback=None):
+    """
+    Обработка документа с заменой предлогов и проверкой орфографии.
+
+    Args:
+        input_path: Путь к исходному файлу
+        output_path: Путь для сохранения обработанного файла
+        progress_callback: Функция обратного вызова для обновления прогресса
+    """
+    with safe_document_handling(input_path, output_path) as doc:
+        total_elements = (
+                len(doc.paragraphs) +
+                sum(len(row.cells) for table in doc.tables for row in table.rows) +
+                sum(len(section.header.paragraphs) + len(section.footer.paragraphs) for section in doc.sections)
+        )
+
+        processed = 0
+
+        # Обрабатываем обычные абзацы
+        for paragraph in doc.paragraphs:
+            process_paragraph(paragraph)
+            # Дополнительная проверка орфографии
+            process_paragraph_spellcheck(paragraph)
+            processed += 1
+            if progress_callback:
+                progress_callback(processed / total_elements)
+
+        # Обрабатываем текст в таблицах
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for paragraph in cell.paragraphs:
+                        process_paragraph(paragraph)
+                        # Дополнительная проверка орфографии
+                        process_paragraph_spellcheck(paragraph)
+                        processed += 1
+                        if progress_callback:
+                            progress_callback(processed / total_elements)
+
+        # Обрабатываем колонтитулы
+        for section in doc.sections:
+            for paragraph in section.header.paragraphs:
+                process_paragraph(paragraph)
+                # Дополнительная проверка орфографии
+                process_paragraph_spellcheck(paragraph)
+                processed += 1
+                if progress_callback:
+                    progress_callback(processed / total_elements)
+
+            for paragraph in section.footer.paragraphs:
+                process_paragraph(paragraph)
+                # Дополнительная проверка орфографии
+                process_paragraph_spellcheck(paragraph)
+                processed += 1
+                if progress_callback:
+                    progress_callback(processed / total_elements)

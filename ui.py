@@ -1,10 +1,10 @@
 import os
 import threading
 import ttkbootstrap as ttk
-from tkinter import filedialog, messagebox, StringVar
+from tkinter import filedialog, messagebox, StringVar, BooleanVar
 from ttkbootstrap.constants import *
 from config import SHORT_WORDS, save_short_words
-from logic import fix_hanging_prepositions
+from logic import fix_hanging_prepositions, fix_hanging_prepositions_with_spellcheck
 import logging
 
 
@@ -26,6 +26,8 @@ class Application:
         self.status_var = StringVar(value="Готов к работе")
         self.files_processed = 0
         self.total_files = 0
+
+        self.spellcheck_var = BooleanVar(value=False)
 
         # Создаем интерфейс
         self.create_ui()
@@ -73,33 +75,19 @@ class Application:
 
     def build_files_tab(self, parent):
         """Создает интерфейс вкладки обработки файлов."""
-        # Заголовок
-        ttk.Label(
-            parent,
-            text="Выберите файл или папку для обработки",
-            font=("Arial", 14, "bold")
-        ).pack(pady=10)
+        # ... (существующий код до информационной панели)
 
-        # Фрейм для кнопок
-        buttons_frame = ttk.Frame(parent)
-        buttons_frame.pack(fill=X, padx=20, pady=10)
+        # Чекбокс для орфографической проверки
+        spellcheck_frame = ttk.Frame(parent)
+        spellcheck_frame.pack(fill=X, padx=20, pady=5)
 
-        # Кнопки выбора файлов
-        ttk.Button(
-            buttons_frame,
-            text="📄 Выбрать файл",
-            command=self.select_file,
-            bootstyle="primary",
-            width=20
-        ).pack(side=LEFT, padx=5)
-
-        ttk.Button(
-            buttons_frame,
-            text="📁 Выбрать папку",
-            command=self.select_folder,
-            bootstyle="info",
-            width=20
-        ).pack(side=LEFT, padx=5)
+        spellcheck_checkbox = ttk.Checkbutton(
+            spellcheck_frame,
+            text="Проверка орфографии (Яндекс.Спеллер)",
+            variable=self.spellcheck_var,
+            bootstyle="success-round-toggle"
+        )
+        spellcheck_checkbox.pack(anchor=W)
 
         # Информационная панель
         info_frame = ttk.LabelFrame(parent, text="Информация")
@@ -283,29 +271,27 @@ class Application:
             output_path = os.path.join(output_dir, os.path.basename(file_path))
 
             try:
-                # Логируем начало обработки файла
                 logging.info(f"Начало обработки файла: {file_path}")
 
-                # Обновляем UI перед началом обработки файла
                 self.root.after(0, lambda i=i: self.status_var.set(f"Обработка файла {i + 1} из {len(files)}"))
 
-                # # Пытаемся обработать файл с обратным вызовом для прогресса
-                # fix_hanging_prepositions(
-                #     file_path,
-                #     output_path,
-                #     lambda p, i=i: self.root.after(0, lambda: self.update_progress(i, p, len(files)))
-                # )
+                # Выбираем функцию обработки в зависимости от выбранной опции
+                if self.spellcheck_var.get():
+                    # Вызываем функцию с проверкой орфографии
+                    fix_hanging_prepositions_with_spellcheck(
+                        file_path,
+                        output_path,
+                        lambda p, i=i: self.root.after(0, lambda: self.update_progress(i, p, len(files)))
+                    )
+                else:
+                    # Стандартная обработка без проверки орфографии
+                    fix_hanging_prepositions(
+                        file_path,
+                        output_path,
+                        lambda p, i=i: self.root.after(0, lambda: self.update_progress(i, p, len(files)))
+                    )
 
-                fix_hanging_prepositions(
-                         file_path,
-                         output_path,
-                         lambda p, i=i: self.root.after(0, lambda: self.update_progress(i, p, len(files)))
-                )
-
-                # Увеличиваем счетчик обработанных файлов
                 successful_files += 1
-
-                # Логируем успешное завершение
                 logging.info(f"Файл успешно обработан: {output_path}")
 
             except FileNotFoundError as e:
@@ -323,7 +309,6 @@ class Application:
                 errors.append(error_message)
                 logging.error(error_message, exc_info=True)
 
-        # Обновляем UI после завершения всех файлов
         self.root.after(0, lambda: self.processing_complete(successful_files, errors))
 
     def update_progress(self, file_index, file_progress, total_files):
@@ -395,3 +380,4 @@ def run_ui():
     root = ttk.Window(themename="superhero")  # Темная тема
     app = Application(root)
     root.mainloop()
+
