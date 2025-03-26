@@ -1,8 +1,30 @@
 import re
 import os
+import requests
+import logging
 from docx import Document
 from contextlib import contextmanager
 from config import SHORT_WORDS
+
+
+def yandex_spellcheck(text: str):
+    """
+    Проверка орфографии с помощью Яндекс.Спеллера
+    """
+    try:
+        response = requests.post(
+            'https://yandex.speller.yandex.net/v1/checkText',
+            data={
+                'text': text,
+                'format': 'plain',
+                'lang': 'ru',
+                'options': 511  # Максимальный уровень проверки
+            }
+        )
+        return response.json()
+    except Exception as e:
+        logging.error(f"Ошибка при проверке орфографии: {e}")
+        return []
 
 
 @contextmanager
@@ -27,6 +49,28 @@ def safe_document_handling(input_path, output_path):
     except Exception as e:
         # Перебрасываем исключение наверх для обработки в UI
         raise e
+
+
+def fix_dates_in_paragraph(paragraph):
+    """
+    Заменяет пробелы в датах на неразрывные пробелы.
+    Поддерживает форматы: 26.01.1990 и 26 января 1990
+    """
+    # Регулярные выражения для различных форматов даты
+    date_patterns = [
+        r'\d{1,2}\.\d{1,2}\.\d{4}',  # дд.мм.гггг
+        r'\d{1,2}\s+[а-яА-Я]+\s+\d{4}'  # дд месяц гггг
+    ]
+
+    for run in paragraph.runs:
+        text = run.text
+        for pattern in date_patterns:
+            # Находим все даты в тексте
+            dates = re.findall(pattern, text)
+            for date in dates:
+                # Заменяем пробелы на неразрывные пробелы
+                text = text.replace(date, date.replace(' ', '\u00A0'))
+        run.text = text
 
 
 def find_hanging_prepositions(paragraph):
@@ -76,6 +120,10 @@ def process_paragraph(paragraph):
     if not paragraph.runs:
         return
 
+    # Сначала фиксируем даты
+    fix_dates_in_paragraph(paragraph)
+
+    # Затем работаем с предлогами
     replacements = find_hanging_prepositions(paragraph)
 
     # Применяем замены с конца, чтобы не сбивать индексы
@@ -97,6 +145,43 @@ def process_paragraph(paragraph):
                 run_text = paragraph.runs[i].text
                 # Заменяем пробел на неразрывный внутри run
                 paragraph.runs[i].text = run_text[:start] + run_text[start:end - 1] + "\u00A0" + run_text[end:]
+
+    # Проверка орфографии должна быть последним шагом
+    process_paragraph_spellcheck(paragraph)
+
+
+def apply_spellcheck_to_run(run, corrections):
+    """
+    Применяет исправления орфографии к конкретному run
+    с сохранением форматирования
+    """
+    text = run.text
+    for error in corrections:
+        start = error.get('pos', 0)
+        end = start + error.get('len', 0)
+        suggestions = error.get('s', [])
+
+        if suggestions:
+            # Заменяем слово первым предложенным вариантом
+            text = text[:start] + suggestions[0] + text[end:]
+
+    run.text = text
+
+
+def process_paragraph_spellcheck(paragraph):
+    """
+    Проверяет орфографию в параграфе
+    """
+    # Собираем весь текст параграфа
+    full_text = ''.join([run.text for run in paragraph.runs])
+
+    # Получаем исправления от Яндекс.Спеллера
+    corrections = yandex_spellcheck(full_text)
+
+    if corrections:
+        # Применяем исправления к каждому run
+        for run in paragraph.runs:
+            apply_spellcheck_to_run(run, corrections)
 
 
 def fix_hanging_prepositions(input_path, output_path, progress_callback=None):

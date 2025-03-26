@@ -4,7 +4,7 @@ import ttkbootstrap as ttk
 from tkinter import filedialog, messagebox, StringVar
 from ttkbootstrap.constants import *
 from config import SHORT_WORDS, save_short_words
-from logic import fix_hanging_prepositions
+from logic import fix_dates_in_paragraph
 import logging
 
 
@@ -283,11 +283,17 @@ class Application:
                 # Обновляем UI перед началом обработки файла
                 self.root.after(0, lambda i=i: self.status_var.set(f"Обработка файла {i + 1} из {len(files)}"))
 
-                # Пытаемся обработать файл с обратным вызовом для прогресса
-                fix_hanging_prepositions(
-                    file_path,
-                    output_path,
-                    lambda p, i=i: self.root.after(0, lambda: self.update_progress(i, p, len(files)))
+                # # Пытаемся обработать файл с обратным вызовом для прогресса
+                # fix_hanging_prepositions(
+                #     file_path,
+                #     output_path,
+                #     lambda p, i=i: self.root.after(0, lambda: self.update_progress(i, p, len(files)))
+                # )
+
+                fix_hanging_prepositions_and_dates(
+                         file_path,
+                         output_path,
+                         lambda p, i=i: self.root.after(0, lambda: self.update_progress(i, p, len(files)))
                 )
 
                 # Увеличиваем счетчик обработанных файлов

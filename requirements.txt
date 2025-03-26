@@ -1,2 +1,4 @@
 ttkbootstrap
 python-docx
+requests
+pyspellchecker
