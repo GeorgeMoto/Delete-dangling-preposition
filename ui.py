@@ -4,9 +4,15 @@ import ttkbootstrap as ttk
 from tkinter import filedialog, messagebox, StringVar
 from ttkbootstrap.constants import *
 from config import SHORT_WORDS, save_short_words
-from logic import fix_dates_in_paragraph
+from logic import fix_hanging_prepositions
 import logging
 
+
+def fix_hanging_prepositions_and_dates(input_path, output_path, progress_callback=None):
+    """
+    Обертка для совместимости с ui.py
+    """
+    fix_hanging_prepositions(input_path, output_path, progress_callback)
 
 class Application:
     def __init__(self, root):
@@ -290,7 +296,7 @@ class Application:
                 #     lambda p, i=i: self.root.after(0, lambda: self.update_progress(i, p, len(files)))
                 # )
 
-                fix_hanging_prepositions_and_dates(
+                fix_hanging_prepositions(
                          file_path,
                          output_path,
                          lambda p, i=i: self.root.after(0, lambda: self.update_progress(i, p, len(files)))

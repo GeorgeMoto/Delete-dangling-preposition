@@ -5,6 +5,7 @@ import logging
 from docx import Document
 from contextlib import contextmanager
 from config import SHORT_WORDS
+from Date_Spellcheck_Logic import process_paragraph_spellcheck
 
 
 def yandex_spellcheck(text: str):
@@ -148,40 +149,6 @@ def process_paragraph(paragraph):
 
     # Проверка орфографии должна быть последним шагом
     process_paragraph_spellcheck(paragraph)
-
-
-def apply_spellcheck_to_run(run, corrections):
-    """
-    Применяет исправления орфографии к конкретному run
-    с сохранением форматирования
-    """
-    text = run.text
-    for error in corrections:
-        start = error.get('pos', 0)
-        end = start + error.get('len', 0)
-        suggestions = error.get('s', [])
-
-        if suggestions:
-            # Заменяем слово первым предложенным вариантом
-            text = text[:start] + suggestions[0] + text[end:]
-
-    run.text = text
-
-
-def process_paragraph_spellcheck(paragraph):
-    """
-    Проверяет орфографию в параграфе
-    """
-    # Собираем весь текст параграфа
-    full_text = ''.join([run.text for run in paragraph.runs])
-
-    # Получаем исправления от Яндекс.Спеллера
-    corrections = yandex_spellcheck(full_text)
-
-    if corrections:
-        # Применяем исправления к каждому run
-        for run in paragraph.runs:
-            apply_spellcheck_to_run(run, corrections)
 
 
 def fix_hanging_prepositions(input_path, output_path, progress_callback=None):
