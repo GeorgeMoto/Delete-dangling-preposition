@@ -27,14 +27,15 @@ def fix_dates_in_paragraph(paragraph):
         run.text = text
 
 
-def yandex_spellcheck(text: str) -> List[Dict]:
+def yandex_spellcheck(text: str):
     """
     Проверка орфографии с помощью Яндекс.Спеллера
     """
     try:
-        response = requests.post(
-            'https://yandex.speller.yandex.net/v1/checkText',
-            data={
+        # Используем GET-запрос вместо POST
+        response = requests.get(
+            'https://speller.yandex.net/services/spellservice.json/checkText',
+            params={
                 'text': text,
                 'format': 'plain',
                 'lang': 'ru',
