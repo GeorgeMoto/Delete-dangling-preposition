@@ -75,7 +75,29 @@ class Application:
 
     def build_files_tab(self, parent):
         """Создает интерфейс вкладки обработки файлов."""
-        # ... (существующий код до информационной панели)
+        # Фрейм для кнопок выбора файлов
+        file_selection_frame = ttk.Frame(parent)
+        file_selection_frame.pack(fill=X, padx=20, pady=10)
+
+        # Кнопка выбора одного файла
+        file_button = ttk.Button(
+            file_selection_frame,
+            text="Выбрать файл",
+            command=self.select_file,
+            bootstyle="primary",
+            width=20
+        )
+        file_button.pack(side=LEFT, padx=5)
+
+        # Кнопка выбора папки
+        folder_button = ttk.Button(
+            file_selection_frame,
+            text="Выбрать папку",
+            command=self.select_folder,
+            bootstyle="secondary",
+            width=20
+        )
+        folder_button.pack(side=LEFT, padx=5)
 
         # Чекбокс для орфографической проверки
         spellcheck_frame = ttk.Frame(parent)
@@ -89,7 +111,7 @@ class Application:
         )
         spellcheck_checkbox.pack(anchor=W)
 
-        # Информационная панель
+        # Существующий информационный текст
         info_frame = ttk.LabelFrame(parent, text="Информация")
         info_frame.pack(fill=BOTH, expand=YES, padx=20, pady=10)
 
