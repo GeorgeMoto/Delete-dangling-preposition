@@ -4,7 +4,7 @@ import ttkbootstrap as ttk
 from tkinter import filedialog, messagebox, StringVar, BooleanVar
 from ttkbootstrap.constants import *
 from config import SHORT_WORDS, save_short_words
-from logic import fix_hanging_prepositions, fix_hanging_prepositions_with_spellcheck
+from logic import fix_hanging_prepositions
 import logging
 
 
@@ -105,7 +105,7 @@ class Application:
 
         spellcheck_checkbox = ttk.Checkbutton(
             spellcheck_frame,
-            text="Проверка орфографии (Яндекс.Спеллер)",
+            text="Проверка орфографии Yandex Speller",
             variable=self.spellcheck_var,
             bootstyle="success-round-toggle"
         )
@@ -297,21 +297,13 @@ class Application:
 
                 self.root.after(0, lambda i=i: self.status_var.set(f"Обработка файла {i + 1} из {len(files)}"))
 
-                # Выбираем функцию обработки в зависимости от выбранной опции
-                if self.spellcheck_var.get():
-                    # Вызываем функцию с проверкой орфографии
-                    fix_hanging_prepositions_with_spellcheck(
-                        file_path,
-                        output_path,
-                        lambda p, i=i: self.root.after(0, lambda: self.update_progress(i, p, len(files)))
-                    )
-                else:
-                    # Стандартная обработка без проверки орфографии
-                    fix_hanging_prepositions(
-                        file_path,
-                        output_path,
-                        lambda p, i=i: self.root.after(0, lambda: self.update_progress(i, p, len(files)))
-                    )
+                # Вызываем функцию с параметром спеллчекера
+                fix_hanging_prepositions(
+                    file_path,
+                    output_path,
+                    lambda p, i=i: self.root.after(0, lambda: self.update_progress(i, p, len(files))),
+                    with_spellcheck=self.spellcheck_var.get()
+                )
 
                 successful_files += 1
                 logging.info(f"Файл успешно обработан: {output_path}")

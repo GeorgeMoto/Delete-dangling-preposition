@@ -114,9 +114,13 @@ def find_hanging_prepositions(paragraph):
     return replacements
 
 
-def process_paragraph(paragraph):
+def process_paragraph(paragraph, with_spellcheck=False):
     """
     Обрабатывает параграф, сохраняя форматирование
+
+    Args:
+        paragraph: Параграф документа
+        with_spellcheck: Флаг для включения проверки орфографии
     """
     if not paragraph.runs:
         return
@@ -148,10 +152,11 @@ def process_paragraph(paragraph):
                 paragraph.runs[i].text = run_text[:start] + run_text[start:end - 1] + "\u00A0" + run_text[end:]
 
     # Проверка орфографии должна быть последним шагом
-    process_paragraph_spellcheck(paragraph)
+    if with_spellcheck:
+        process_paragraph_spellcheck(paragraph)
 
 
-def fix_hanging_prepositions(input_path, output_path, progress_callback=None):
+def fix_hanging_prepositions(input_path, output_path, progress_callback=None, with_spellcheck=False):
     """
     Основная функция обработки документа.
 
@@ -159,6 +164,7 @@ def fix_hanging_prepositions(input_path, output_path, progress_callback=None):
         input_path: Путь к исходному файлу
         output_path: Путь для сохранения обработанного файла
         progress_callback: Функция обратного вызова для обновления прогресса
+        with_spellcheck: Флаг для включения проверки орфографии
     """
     with safe_document_handling(input_path, output_path) as doc:
         total_elements = (
@@ -171,7 +177,7 @@ def fix_hanging_prepositions(input_path, output_path, progress_callback=None):
 
         # Обрабатываем обычные абзацы
         for paragraph in doc.paragraphs:
-            process_paragraph(paragraph)
+            process_paragraph(paragraph, with_spellcheck)
             processed += 1
             if progress_callback:
                 progress_callback(processed / total_elements)
@@ -181,7 +187,7 @@ def fix_hanging_prepositions(input_path, output_path, progress_callback=None):
             for row in table.rows:
                 for cell in row.cells:
                     for paragraph in cell.paragraphs:
-                        process_paragraph(paragraph)
+                        process_paragraph(paragraph, with_spellcheck)
                         processed += 1
                         if progress_callback:
                             progress_callback(processed / total_elements)
@@ -189,69 +195,12 @@ def fix_hanging_prepositions(input_path, output_path, progress_callback=None):
         # Обрабатываем колонтитулы
         for section in doc.sections:
             for paragraph in section.header.paragraphs:
-                process_paragraph(paragraph)
+                process_paragraph(paragraph, with_spellcheck)
                 processed += 1
                 if progress_callback:
                     progress_callback(processed / total_elements)
             for paragraph in section.footer.paragraphs:
-                process_paragraph(paragraph)
-                processed += 1
-                if progress_callback:
-                    progress_callback(processed / total_elements)
-
-def fix_hanging_prepositions_with_spellcheck(input_path, output_path, progress_callback=None):
-    """
-    Обработка документа с заменой предлогов и проверкой орфографии.
-
-    Args:
-        input_path: Путь к исходному файлу
-        output_path: Путь для сохранения обработанного файла
-        progress_callback: Функция обратного вызова для обновления прогресса
-    """
-    with safe_document_handling(input_path, output_path) as doc:
-        total_elements = (
-                len(doc.paragraphs) +
-                sum(len(row.cells) for table in doc.tables for row in table.rows) +
-                sum(len(section.header.paragraphs) + len(section.footer.paragraphs) for section in doc.sections)
-        )
-
-        processed = 0
-
-        # Обрабатываем обычные абзацы
-        for paragraph in doc.paragraphs:
-            process_paragraph(paragraph)
-            # Дополнительная проверка орфографии
-            process_paragraph_spellcheck(paragraph)
-            processed += 1
-            if progress_callback:
-                progress_callback(processed / total_elements)
-
-        # Обрабатываем текст в таблицах
-        for table in doc.tables:
-            for row in table.rows:
-                for cell in row.cells:
-                    for paragraph in cell.paragraphs:
-                        process_paragraph(paragraph)
-                        # Дополнительная проверка орфографии
-                        process_paragraph_spellcheck(paragraph)
-                        processed += 1
-                        if progress_callback:
-                            progress_callback(processed / total_elements)
-
-        # Обрабатываем колонтитулы
-        for section in doc.sections:
-            for paragraph in section.header.paragraphs:
-                process_paragraph(paragraph)
-                # Дополнительная проверка орфографии
-                process_paragraph_spellcheck(paragraph)
-                processed += 1
-                if progress_callback:
-                    progress_callback(processed / total_elements)
-
-            for paragraph in section.footer.paragraphs:
-                process_paragraph(paragraph)
-                # Дополнительная проверка орфографии
-                process_paragraph_spellcheck(paragraph)
+                process_paragraph(paragraph, with_spellcheck)
                 processed += 1
                 if progress_callback:
                     progress_callback(processed / total_elements)
